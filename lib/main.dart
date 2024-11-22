@@ -38,6 +38,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
   void initState() {
     super.initState();
     _loadTodos();
+    _loadFontSize();
   }
 
   void _loadTodos() async {
@@ -74,6 +75,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
     setState(() {
       fontSize += 2;
     });
+    _saveFontSize();
   }
 
   void _decreaseFontSize() {
@@ -82,8 +84,20 @@ class _TodoListScreenState extends State<TodoListScreen> {
         fontSize -= 2;
       }
     });
+    _saveFontSize();
   }
 
+  void _loadFontSize() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      fontSize = prefs.getDouble('fontSize') ?? 16.0;
+    });
+  }
+
+  void _saveFontSize() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('fontSize', fontSize);
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
