@@ -1,30 +1,97 @@
-// ignore_for_file: library_private_types_in_public_api
-
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
-import 'dart:io';
+import 'settings_screen.dart';
+import 'localization.dart';  // Localization 파일 추가
+import 'dart:convert';      // JSON 처리를 위해 추가
+import 'dart:io';           // 파일 처리를 위해 추가
+import 'package:image_picker/image_picker.dart';  // 이미지 선택을 위해 추가
 
-void main() => runApp(const TodoApp());
+void main() => runApp(TodoApp());
 
-class TodoApp extends StatelessWidget {
-  const TodoApp({super.key});
+class TodoApp extends StatefulWidget {
+  const TodoApp({Key? key}) : super(key: key);
+
+  @override
+  _TodoAppState createState() => _TodoAppState();
+}
+
+class _TodoAppState extends State<TodoApp> {
+  String currentLanguage = 'ko'; // 기본 언어
+  Color currentThemeColor = Colors.purple[200]!; // 기본 테마 색상
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  void _loadSettings() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      currentLanguage = prefs.getString('language') ?? 'ko';
+      int? colorValue = prefs.getInt('themeColor');
+      if (colorValue != null) {
+        currentThemeColor = Color(colorValue);
+      }
+    });
+  }
+
+  void _updateLanguage(String newLanguage) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString('language', newLanguage);
+    setState(() {
+      currentLanguage = newLanguage;
+    });
+  }
+
+  void _updateThemeColor(Color newColor) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('themeColor', newColor.value);
+    setState(() {
+      currentThemeColor = newColor;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'my Todo App',
+      title: AppLocalizations.getText('appTitle', currentLanguage),
       theme: ThemeData(
-        scaffoldBackgroundColor: Colors.white,
+  primaryColor: currentThemeColor, // AppBar 및 주요 색상
+  appBarTheme: AppBarTheme(
+    color: currentThemeColor, // AppBar 색상
+  ),
+  floatingActionButtonTheme: FloatingActionButtonThemeData(
+    backgroundColor: currentThemeColor, // FloatingActionButton 색상
+  ),
+  elevatedButtonTheme: ElevatedButtonThemeData(
+    style: ElevatedButton.styleFrom(
+      backgroundColor: currentThemeColor, // ElevatedButton의 배경색
+    ),
+  ),
+  scaffoldBackgroundColor: Colors.white, // 앱의 배경색을 흰색으로 유지
+),
+
+      home: TodoListScreen(
+        currentLanguage: currentLanguage,
+        onLanguageChange: _updateLanguage,
+        onThemeChange: _updateThemeColor,
       ),
-      home: const TodoListScreen(),
     );
   }
 }
 
 class TodoListScreen extends StatefulWidget {
-  const TodoListScreen({super.key});
+  final String currentLanguage;
+  final ValueChanged<String> onLanguageChange;
+  final ValueChanged<Color> onThemeChange;
+
+  const TodoListScreen({
+    Key? key,
+    required this.currentLanguage,
+    required this.onLanguageChange,
+    required this.onThemeChange,
+  }) : super(key: key);
 
   @override
   _TodoListScreenState createState() => _TodoListScreenState();
@@ -32,7 +99,7 @@ class TodoListScreen extends StatefulWidget {
 
 class _TodoListScreenState extends State<TodoListScreen> {
   List<TodoItem> todos = [];
-  double fontSize = 22.0;
+  double fontSize = 18.0;
 
   @override
   void initState() {
@@ -41,27 +108,45 @@ class _TodoListScreenState extends State<TodoListScreen> {
     _loadFontSize();
   }
 
+  @override
+  void didUpdateWidget(TodoListScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.currentLanguage != widget.currentLanguage) {
+      setState(() {
+        // 화면 재빌드
+      });
+    }
+  }
+
   void _loadTodos() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? todosString = prefs.getString('todos');
     if (todosString != null) {
       List<dynamic> jsonList = jsonDecode(todosString);
       setState(() {
-        todos = jsonList.map((json) => TodoItem.fromJson(jsonDecode(json))).toList();
+        todos = jsonList
+            .map((json) => TodoItem.fromJson(jsonDecode(json)))
+            .toList();
       });
     }
   }
 
   void _saveTodos() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    List<String> jsonList = todos.map((todo) => jsonEncode(todo.toJson())).toList();
+    List<String> jsonList =
+        todos.map((todo) => jsonEncode(todo.toJson())).toList();
     await prefs.setString('todos', jsonEncode(jsonList));
   }
 
   void _addTodo() async {
     final newTodo = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => AddTodoScreen(fontSize: fontSize)),
+      MaterialPageRoute(
+        builder: (_) => AddTodoScreen(
+          fontSize: fontSize,
+          currentLanguage: widget.currentLanguage, // 언어 전달
+        ),
+      ),
     );
     if (newTodo != null) {
       setState(() {
@@ -98,30 +183,69 @@ class _TodoListScreenState extends State<TodoListScreen> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setDouble('fontSize', fontSize);
   }
+
+  void _openSettings(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SettingsScreen(
+          currentLanguage: widget.currentLanguage,
+          onLanguageChange: widget.onLanguageChange,
+          onThemeChange: widget.onThemeChange,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    String currentLanguage = widget.currentLanguage;
+
+    String emptyTodoMessage =
+        AppLocalizations.getText('emptyTodoMessage', currentLanguage);
+    String appTitle =
+        AppLocalizations.getText('appTitle', currentLanguage);
+    String addTodoTooltip =
+        AppLocalizations.getText('addTodo', currentLanguage);
+    String increaseFontTooltip =
+        AppLocalizations.getText('increaseFont', currentLanguage);
+    String decreaseFontTooltip =
+        AppLocalizations.getText('decreaseFont', currentLanguage);
+    String settingsTooltip =
+        AppLocalizations.getText('settings', currentLanguage);
+    String deleteTooltip =
+        AppLocalizations.getText('delete', currentLanguage);
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Todo List"),
+        title: Text(appTitle),
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
             onPressed: _addTodo,
+            tooltip: addTodoTooltip,
           ),
           IconButton(
             icon: const Icon(Icons.text_increase),
             onPressed: _increaseFontSize,
+            tooltip: increaseFontTooltip,
           ),
           IconButton(
             icon: const Icon(Icons.text_decrease),
             onPressed: _decreaseFontSize,
+            tooltip: decreaseFontTooltip,
+          ),
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () => _openSettings(context),
+            tooltip: settingsTooltip,
           ),
         ],
       ),
       body: todos.isEmpty
           ? Center(
               child: Text(
-                '할 일이 없습니다. 추가해주세요!',
+                emptyTodoMessage,
                 style: TextStyle(fontSize: fontSize),
               ),
             )
@@ -160,6 +284,8 @@ class _TodoListScreenState extends State<TodoListScreen> {
                   index: index,
                   key: Key('$index'),
                   child: ListTile(
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 16.0),
                     title: Text(
                       todo.title,
                       style: TextStyle(fontSize: fontSize),
@@ -177,7 +303,10 @@ class _TodoListScreenState extends State<TodoListScreen> {
                         context,
                         MaterialPageRoute(
                           builder: (_) => AddTodoScreen(
-                              existingTodo: todo, fontSize: fontSize),
+                            existingTodo: todo,
+                            fontSize: fontSize,
+                            currentLanguage: currentLanguage,
+                          ),
                         ),
                       );
                       if (updatedTodo != null) {
@@ -195,6 +324,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
                         });
                         _saveTodos();
                       },
+                      tooltip: deleteTooltip,
                     ),
                   ),
                 );
@@ -203,6 +333,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
       floatingActionButton: FloatingActionButton(
         onPressed: _addTodo,
         child: const Icon(Icons.add),
+        tooltip: addTodoTooltip,
       ),
     );
   }
@@ -211,12 +342,14 @@ class _TodoListScreenState extends State<TodoListScreen> {
 class AddTodoScreen extends StatefulWidget {
   final TodoItem? existingTodo;
   final double fontSize;
+  final String currentLanguage;
 
   const AddTodoScreen({
-    super.key,
+    Key? key,
     this.existingTodo,
     required this.fontSize,
-  });
+    required this.currentLanguage,
+  }) : super(key: key);
 
   @override
   _AddTodoScreenState createState() => _AddTodoScreenState();
@@ -238,7 +371,8 @@ class _AddTodoScreenState extends State<AddTodoScreen> {
   }
 
   void _pickImage() async {
-    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+    final pickedFile =
+        await ImagePicker().pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       setState(() {
         imagePath = pickedFile.path;
@@ -262,17 +396,25 @@ class _AddTodoScreenState extends State<AddTodoScreen> {
 
   @override
   Widget build(BuildContext context) {
+    String currentLanguage = widget.currentLanguage;
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.existingTodo == null ? "Add Todo" : "Edit Todo"),
+        title: Text(widget.existingTodo == null
+            ? AppLocalizations.getText('addTodo', currentLanguage)
+            : AppLocalizations.getText('editTodo', currentLanguage)),
         actions: [
           IconButton(
             icon: const Icon(Icons.text_increase),
             onPressed: _increaseFontSize,
+            tooltip:
+                AppLocalizations.getText('increaseFont', currentLanguage),
           ),
           IconButton(
             icon: const Icon(Icons.text_decrease),
             onPressed: _decreaseFontSize,
+            tooltip:
+                AppLocalizations.getText('decreaseFont', currentLanguage),
           ),
         ],
       ),
@@ -282,17 +424,27 @@ class _AddTodoScreenState extends State<AddTodoScreen> {
           children: [
             TextField(
               controller: _controller,
-              decoration: const InputDecoration(labelText: "Title"),
+              decoration: InputDecoration(
+                  labelText:
+                      AppLocalizations.getText('title', currentLanguage)),
               style: TextStyle(fontSize: fontSize),
+              maxLines: null,
+              keyboardType: TextInputType.multiline,
+              showCursor: true,
+              cursorWidth: 2.0,
+              cursorColor: Theme.of(context).primaryColor,
+              textDirection: TextDirection.ltr,
             ),
             const SizedBox(height: 16),
             ElevatedButton.icon(
               onPressed: _pickImage,
               icon: const Icon(Icons.image),
-              label: const Text("Attach Image"),
+              label: Text(AppLocalizations.getText(
+                  'attachImage', currentLanguage)),
             ),
             if (imagePath != null)
-              Image.file(File(imagePath!), height: 100, width: 100, fit: BoxFit.cover),
+              Image.file(File(imagePath!),
+                  height: 100, width: 100, fit: BoxFit.cover),
             const Spacer(),
             ElevatedButton(
               onPressed: () {
@@ -301,7 +453,8 @@ class _AddTodoScreenState extends State<AddTodoScreen> {
                   TodoItem(title: _controller.text, imagePath: imagePath),
                 );
               },
-              child: const Text("Save"),
+              child: Text(
+                  AppLocalizations.getText('save', currentLanguage)),
             ),
           ],
         ),
