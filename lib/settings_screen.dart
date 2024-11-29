@@ -16,12 +16,12 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final List<Color> themeColors = [
-      Colors.purple[50]!,
-      Colors.pink[50]!,
-      Colors.blue[50]!,
-      Colors.green[50]!,
-      Colors.orange[50]!,
-      Colors.teal[50]!,
+      Color.fromARGB(255, 251, 244, 255), // 연보라색
+      Color.fromARGB(255, 255, 240, 245), // 연분홍색
+      Color.fromARGB(255, 235, 247, 255), // 연한 파란색
+      Color.fromARGB(255, 236, 249, 237), // 연두색
+      Color.fromARGB(255, 255, 246, 232), // 연한 주황색
+      Color.fromARGB(255, 232, 247, 246), // 연한 청록색
     ];
 
     return Scaffold(
@@ -35,7 +35,8 @@ class SettingsScreen extends StatelessWidget {
             title: Text(AppLocalizations.getText('language', currentLanguage)),
             trailing: DropdownButton<String>(
               value: currentLanguage,
-              items: [
+              dropdownColor: Theme.of(context).primaryColor, // 드롭다운 메뉴 배경색 설정
+              items: const [
                 DropdownMenuItem(
                   value: 'ko',
                   child: Text('한국어'),

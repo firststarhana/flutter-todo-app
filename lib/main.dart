@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'settings_screen.dart';
-import 'localization.dart';  // Localization 파일 추가
-import 'dart:convert';      // JSON 처리를 위해 추가
-import 'dart:io';           // 파일 처리를 위해 추가
-import 'package:image_picker/image_picker.dart';  // 이미지 선택을 위해 추가
+import 'localization.dart';
+import 'dart:convert';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 
 void main() => runApp(TodoApp());
 
@@ -57,23 +57,23 @@ class _TodoAppState extends State<TodoApp> {
     return MaterialApp(
       title: AppLocalizations.getText('appTitle', currentLanguage),
       theme: ThemeData(
-  primaryColor: currentThemeColor, // AppBar 및 주요 색상
-  appBarTheme: AppBarTheme(
-    color: currentThemeColor, // AppBar 색상
-  ),
-  floatingActionButtonTheme: FloatingActionButtonThemeData(
-    backgroundColor: currentThemeColor, // FloatingActionButton 색상
-  ),
-  elevatedButtonTheme: ElevatedButtonThemeData(
-    style: ElevatedButton.styleFrom(
-      backgroundColor: currentThemeColor, // ElevatedButton의 배경색
-    ),
-  ),
-  scaffoldBackgroundColor: Colors.white, // 앱의 배경색을 흰색으로 유지
-),
-
+        primaryColor: currentThemeColor, // AppBar 및 주요 색상
+        appBarTheme: AppBarTheme(
+          color: currentThemeColor, // AppBar 색상
+        ),
+        floatingActionButtonTheme: FloatingActionButtonThemeData(
+          backgroundColor: currentThemeColor, // FloatingActionButton 색상
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: currentThemeColor, // ElevatedButton의 배경색
+          ),
+        ),
+        scaffoldBackgroundColor: Colors.white, // 앱의 배경색을 흰색으로 유지
+      ),
       home: TodoListScreen(
         currentLanguage: currentLanguage,
+        currentThemeColor: currentThemeColor,
         onLanguageChange: _updateLanguage,
         onThemeChange: _updateThemeColor,
       ),
@@ -83,12 +83,14 @@ class _TodoAppState extends State<TodoApp> {
 
 class TodoListScreen extends StatefulWidget {
   final String currentLanguage;
+  final Color currentThemeColor;
   final ValueChanged<String> onLanguageChange;
   final ValueChanged<Color> onThemeChange;
 
   const TodoListScreen({
     Key? key,
     required this.currentLanguage,
+    required this.currentThemeColor,
     required this.onLanguageChange,
     required this.onThemeChange,
   }) : super(key: key);
@@ -251,6 +253,36 @@ class _TodoListScreenState extends State<TodoListScreen> {
             )
           : ReorderableListView.builder(
               buildDefaultDragHandles: false,
+              proxyDecorator: (Widget child, int index, Animation<double> animation) {
+  final todoIndex = index ~/ 2;
+  final todo = todos[todoIndex];
+
+  return Material(
+    color: widget.currentThemeColor,
+    elevation: 6.0,
+    child: ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16.0),
+      title: Text(
+        todo.title,
+        style: TextStyle(fontSize: fontSize),
+      ),
+      leading: todo.imagePath != null
+          ? Image.file(
+              File(todo.imagePath!),
+              width: 50,
+              height: 50,
+              fit: BoxFit.cover,
+            )
+          : null,
+      trailing: IconButton(
+        icon: const Icon(Icons.delete),
+        onPressed: () {},
+        tooltip: '',
+      ),
+    ),
+  );
+},
+
               itemCount: todos.length * 2 - 1,
               onReorder: (oldIndex, newIndex) {
                 final actualOldIndex = oldIndex ~/ 2;
