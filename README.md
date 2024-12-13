@@ -1,5 +1,4 @@
-Never use this code for anything other than your own personal use.
-
+# NEVER USE THIS CODE FOR ANYTHING OTHER THAN YOUR OWN PERSONAL USE.
 
 
 # my_windows_app
