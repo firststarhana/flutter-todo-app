@@ -1,3 +1,7 @@
+// localization.dart는 변경 없음
+
+// main.dart
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'settings_screen.dart';
@@ -5,11 +9,13 @@ import 'localization.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
+import 'dart:async'; // Timer를 사용하기 위해 추가
 
-void main() => runApp(TodoApp());
+void main() => runApp(const TodoApp());
 
 class TodoApp extends StatefulWidget {
-  const TodoApp({Key? key}) : super(key: key);
+  const TodoApp({super.key});
 
   @override
   _TodoAppState createState() => _TodoAppState();
@@ -88,12 +94,12 @@ class TodoListScreen extends StatefulWidget {
   final ValueChanged<Color> onThemeChange;
 
   const TodoListScreen({
-    Key? key,
+    super.key,
     required this.currentLanguage,
     required this.currentThemeColor,
     required this.onLanguageChange,
     required this.onThemeChange,
-  }) : super(key: key);
+  });
 
   @override
   _TodoListScreenState createState() => _TodoListScreenState();
@@ -102,12 +108,27 @@ class TodoListScreen extends StatefulWidget {
 class _TodoListScreenState extends State<TodoListScreen> {
   List<TodoItem> todos = [];
   double fontSize = 18.0;
+  Timer? _timer; // Timer 추가
 
   @override
   void initState() {
     super.initState();
     _loadTodos();
     _loadFontSize();
+    // 1분마다 화면 갱신
+    _timer = Timer.periodic(const Duration(minutes: 1), (timer) {
+      if (mounted) {
+        setState(() {
+          // 1분마다 화면 갱신
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel(); // 화면 종료 시 타이머 해제
+    super.dispose();
   }
 
   @override
@@ -146,7 +167,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
       MaterialPageRoute(
         builder: (_) => AddTodoScreen(
           fontSize: fontSize,
-          currentLanguage: widget.currentLanguage, // 언어 전달
+          currentLanguage: widget.currentLanguage,
         ),
       ),
     );
@@ -199,24 +220,60 @@ class _TodoListScreenState extends State<TodoListScreen> {
     );
   }
 
+  String formatCreatedDate(DateTime date) {
+    return DateFormat('yyyy년MM월dd일 HH시mm분ss초').format(date);
+  }
+
+  // 경과 시간 포맷 수정: 년, 월, 일, 시, 분 단위로 세분화
+  String formatElapsedTime(DateTime start) {
+    final now = DateTime.now();
+    final difference = now.difference(start);
+
+    if (difference.inSeconds < 60) {
+      return "방금전";
+    }
+
+    int totalMinutes = difference.inMinutes;
+
+    int years = totalMinutes ~/ (365 * 24 * 60);
+    totalMinutes %= (365 * 24 * 60);
+
+    int months = totalMinutes ~/ (30 * 24 * 60);
+    totalMinutes %= (30 * 24 * 60);
+
+    int days = totalMinutes ~/ (24 * 60);
+    totalMinutes %= (24 * 60);
+
+    int hours = totalMinutes ~/ 60;
+    int minutes = totalMinutes % 60;
+
+    List<String> parts = [];
+    if (years > 0) parts.add("$years년");
+    if (months > 0) parts.add("$months개월");
+    if (days > 0) parts.add("$days일");
+    if (hours > 0) parts.add("$hours시간");
+    if (minutes > 0) parts.add("$minutes분");
+
+    return "작성한지 ${parts.join(' ')} 경과";
+  }
+
   @override
   Widget build(BuildContext context) {
     String currentLanguage = widget.currentLanguage;
 
     String emptyTodoMessage =
         AppLocalizations.getText('emptyTodoMessage', currentLanguage);
-    String appTitle =
-        AppLocalizations.getText('appTitle', currentLanguage);
-    String addTodoTooltip =
-        AppLocalizations.getText('addTodo', currentLanguage);
+    String appTitle = AppLocalizations.getText('appTitle', currentLanguage);
+    String addTodoTooltip = AppLocalizations.getText('addTodo', currentLanguage);
     String increaseFontTooltip =
         AppLocalizations.getText('increaseFont', currentLanguage);
     String decreaseFontTooltip =
         AppLocalizations.getText('decreaseFont', currentLanguage);
     String settingsTooltip =
         AppLocalizations.getText('settings', currentLanguage);
-    String deleteTooltip =
-        AppLocalizations.getText('delete', currentLanguage);
+    // delete에 대한 번역이 localization에 없으므로 직접 추가 필요. 
+    // 여기서는 영어 그대로 사용하거나 '삭제'로 고정
+    String deleteTooltip = '삭제';
 
     return Scaffold(
       appBar: AppBar(
@@ -253,36 +310,6 @@ class _TodoListScreenState extends State<TodoListScreen> {
             )
           : ReorderableListView.builder(
               buildDefaultDragHandles: false,
-              proxyDecorator: (Widget child, int index, Animation<double> animation) {
-  final todoIndex = index ~/ 2;
-  final todo = todos[todoIndex];
-
-  return Material(
-    color: widget.currentThemeColor,
-    elevation: 6.0,
-    child: ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16.0),
-      title: Text(
-        todo.title,
-        style: TextStyle(fontSize: fontSize),
-      ),
-      leading: todo.imagePath != null
-          ? Image.file(
-              File(todo.imagePath!),
-              width: 50,
-              height: 50,
-              fit: BoxFit.cover,
-            )
-          : null,
-      trailing: IconButton(
-        icon: const Icon(Icons.delete),
-        onPressed: () {},
-        tooltip: '',
-      ),
-    ),
-  );
-},
-
               itemCount: todos.length * 2 - 1,
               onReorder: (oldIndex, newIndex) {
                 final actualOldIndex = oldIndex ~/ 2;
@@ -321,6 +348,16 @@ class _TodoListScreenState extends State<TodoListScreen> {
                     title: Text(
                       todo.title,
                       style: TextStyle(fontSize: fontSize),
+                    ),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text("최초로 작성한 날짜: ${formatCreatedDate(todo.dateCreated)}"),
+                        Text(formatElapsedTime(todo.dateCreated)),
+                        const SizedBox(height: 4),
+                        Text("마지막 수정: ${formatCreatedDate(todo.dateModified)}"),
+                        Text(formatElapsedTime(todo.dateModified)),
+                      ],
                     ),
                     leading: todo.imagePath != null
                         ? Image.file(
@@ -364,8 +401,8 @@ class _TodoListScreenState extends State<TodoListScreen> {
             ),
       floatingActionButton: FloatingActionButton(
         onPressed: _addTodo,
-        child: const Icon(Icons.add),
         tooltip: addTodoTooltip,
+        child: const Icon(Icons.add),
       ),
     );
   }
@@ -377,11 +414,11 @@ class AddTodoScreen extends StatefulWidget {
   final String currentLanguage;
 
   const AddTodoScreen({
-    Key? key,
+    super.key,
     this.existingTodo,
     required this.fontSize,
     required this.currentLanguage,
-  }) : super(key: key);
+  });
 
   @override
   _AddTodoScreenState createState() => _AddTodoScreenState();
@@ -457,15 +494,15 @@ class _AddTodoScreenState extends State<AddTodoScreen> {
             TextField(
               controller: _controller,
               decoration: InputDecoration(
-                  labelText:
-                      AppLocalizations.getText('title', currentLanguage)),
+                labelText:
+                    AppLocalizations.getText('title', currentLanguage),
+              ),
               style: TextStyle(fontSize: fontSize),
               maxLines: null,
               keyboardType: TextInputType.multiline,
               showCursor: true,
               cursorWidth: 2.0,
               cursorColor: Theme.of(context).primaryColor,
-              textDirection: TextDirection.ltr,
             ),
             const SizedBox(height: 16),
             ElevatedButton.icon(
@@ -480,13 +517,18 @@ class _AddTodoScreenState extends State<AddTodoScreen> {
             const Spacer(),
             ElevatedButton(
               onPressed: () {
+                final now = DateTime.now();
                 Navigator.pop(
                   context,
-                  TodoItem(title: _controller.text, imagePath: imagePath),
+                  TodoItem(
+                    title: _controller.text,
+                    imagePath: imagePath,
+                    dateCreated: widget.existingTodo?.dateCreated ?? now,
+                    dateModified: widget.existingTodo != null ? now : now,
+                  ),
                 );
               },
-              child: Text(
-                  AppLocalizations.getText('save', currentLanguage)),
+              child: Text(AppLocalizations.getText('save', currentLanguage)),
             ),
           ],
         ),
@@ -498,13 +540,22 @@ class _AddTodoScreenState extends State<AddTodoScreen> {
 class TodoItem {
   final String title;
   final String? imagePath;
+  final DateTime dateCreated;
+  final DateTime dateModified; // dateModified 추가
 
-  TodoItem({required this.title, this.imagePath});
+  TodoItem({
+    required this.title,
+    this.imagePath,
+    required this.dateCreated,
+    required this.dateModified,
+  });
 
   Map<String, dynamic> toJson() {
     return {
       'title': title,
       'imagePath': imagePath,
+      'dateCreated': dateCreated.toIso8601String(),
+      'dateModified': dateModified.toIso8601String(), // 저장
     };
   }
 
@@ -512,6 +563,15 @@ class TodoItem {
     return TodoItem(
       title: json['title'],
       imagePath: json['imagePath'],
+      dateCreated: json['dateCreated'] != null
+          ? DateTime.parse(json['dateCreated'])
+          : DateTime.now(),
+      dateModified: json['dateModified'] != null
+          ? DateTime.parse(json['dateModified'])
+          : DateTime.now(),
     );
   }
 }
+
+// settings_screen.dart 기존 동일, 변경 없음
+// 단, 필요하다면 deleteTooltip 등에 대한 localization 추가 가능.

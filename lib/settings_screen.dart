@@ -7,21 +7,21 @@ class SettingsScreen extends StatelessWidget {
   final ValueChanged<Color> onThemeChange;
 
   const SettingsScreen({
-    Key? key,
+    super.key,
     required this.currentLanguage,
     required this.onLanguageChange,
     required this.onThemeChange,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
     final List<Color> themeColors = [
-      Color.fromARGB(255, 251, 244, 255), // 연보라색
-      Color.fromARGB(255, 255, 240, 245), // 연분홍색
-      Color.fromARGB(255, 235, 247, 255), // 연한 파란색
-      Color.fromARGB(255, 236, 249, 237), // 연두색
-      Color.fromARGB(255, 255, 246, 232), // 연한 주황색
-      Color.fromARGB(255, 232, 247, 246), // 연한 청록색
+      const Color.fromARGB(255, 251, 244, 255), // 연보라색
+      const Color.fromARGB(255, 255, 240, 245), // 연분홍색
+      const Color.fromARGB(255, 235, 247, 255), // 연한 파란색
+      const Color.fromARGB(255, 236, 249, 237), // 연두색
+      const Color.fromARGB(255, 255, 246, 232), // 연한 주황색
+      const Color.fromARGB(255, 232, 247, 246), // 연한 청록색
     ];
 
     return Scaffold(
