@@ -1,7 +1,3 @@
-// localization.dart는 변경 없음
-
-// main.dart
-
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'settings_screen.dart';
@@ -221,16 +217,19 @@ class _TodoListScreenState extends State<TodoListScreen> {
   }
 
   String formatCreatedDate(DateTime date) {
-    return DateFormat('yyyy년MM월dd일 HH시mm분ss초').format(date);
+    if (widget.currentLanguage == 'en') {
+      return DateFormat('yyyy-MM-dd HH:mm:ss').format(date);
+    } else {
+      return DateFormat('yyyy년 MM월 dd일 HH시 mm분 ss초').format(date);
+    }
   }
 
-  // 경과 시간 포맷 수정: 년, 월, 일, 시, 분 단위로 세분화
   String formatElapsedTime(DateTime start) {
     final now = DateTime.now();
     final difference = now.difference(start);
 
     if (difference.inSeconds < 60) {
-      return "방금전";
+      return AppLocalizations.getText('just_now', widget.currentLanguage);
     }
 
     int totalMinutes = difference.inMinutes;
@@ -248,13 +247,17 @@ class _TodoListScreenState extends State<TodoListScreen> {
     int minutes = totalMinutes % 60;
 
     List<String> parts = [];
-    if (years > 0) parts.add("$years년");
-    if (months > 0) parts.add("$months개월");
-    if (days > 0) parts.add("$days일");
-    if (hours > 0) parts.add("$hours시간");
-    if (minutes > 0) parts.add("$minutes분");
+    if (years > 0) parts.add("$years ${AppLocalizations.getText('year', widget.currentLanguage)}");
+    if (months > 0) parts.add("$months ${AppLocalizations.getText('month', widget.currentLanguage)}");
+    if (days > 0) parts.add("$days ${AppLocalizations.getText('day', widget.currentLanguage)}");
+    if (hours > 0) parts.add("$hours ${AppLocalizations.getText('hour', widget.currentLanguage)}");
+    if (minutes > 0) parts.add("$minutes ${AppLocalizations.getText('minute', widget.currentLanguage)}");
 
-    return "작성한지 ${parts.join(' ')} 경과";
+    return AppLocalizations.getText(
+      'elapsed',
+      widget.currentLanguage,
+      params: {'duration': parts.join(' ')},
+    );
   }
 
   @override
@@ -271,9 +274,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
         AppLocalizations.getText('decreaseFont', currentLanguage);
     String settingsTooltip =
         AppLocalizations.getText('settings', currentLanguage);
-    // delete에 대한 번역이 localization에 없으므로 직접 추가 필요. 
-    // 여기서는 영어 그대로 사용하거나 '삭제'로 고정
-    String deleteTooltip = '삭제';
+    String deleteTooltip = AppLocalizations.getText('delete', currentLanguage);
 
     return Scaffold(
       appBar: AppBar(
@@ -309,6 +310,13 @@ class _TodoListScreenState extends State<TodoListScreen> {
               ),
             )
           : ReorderableListView.builder(
+              proxyDecorator: (Widget child, int index, Animation<double> animation) {
+                return Material(
+                  elevation: 6.0,
+                  color: widget.currentThemeColor, // 투명도 제거
+                  child: child,
+                );
+              },
               buildDefaultDragHandles: false,
               itemCount: todos.length * 2 - 1,
               onReorder: (oldIndex, newIndex) {
@@ -352,10 +360,10 @@ class _TodoListScreenState extends State<TodoListScreen> {
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text("최초로 작성한 날짜: ${formatCreatedDate(todo.dateCreated)}"),
+                        Text("${AppLocalizations.getText('createdDate', currentLanguage)} ${formatCreatedDate(todo.dateCreated)}"),
                         Text(formatElapsedTime(todo.dateCreated)),
                         const SizedBox(height: 4),
-                        Text("마지막 수정: ${formatCreatedDate(todo.dateModified)}"),
+                        Text("${AppLocalizations.getText('modifiedDate', currentLanguage)} ${formatCreatedDate(todo.dateModified)}"),
                         Text(formatElapsedTime(todo.dateModified)),
                       ],
                     ),
